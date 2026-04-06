@@ -1,0 +1,7 @@
+{
+  "name": "The Riviera Malibu & Residences - Luxury Real Estate",
+  "description": "Official agent website for The Riviera Malibu & Residences, Pratumnak Soi 5. Discover luxury living, available units for sale and rent.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
