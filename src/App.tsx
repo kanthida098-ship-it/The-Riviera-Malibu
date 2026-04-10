@@ -11,7 +11,8 @@ import {
   Routes, 
   Route, 
   Link,
-  useLocation
+  useLocation,
+  useNavigate
 } from 'react-router-dom';
 import { 
   collection, 
@@ -22,6 +23,7 @@ import {
 import { db, handleFirestoreError, OperationType } from './firebase';
 import { AdminPanel } from './components/AdminPanel';
 import { UnitDetails } from './components/UnitDetails';
+import { ProjectInfo } from './components/ProjectInfo';
 
 import {
   Building,
@@ -97,6 +99,7 @@ export default function App() {
       <Routes>
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/unit/:id" element={<UnitDetails getImageUrl={getImageUrl} />} />
+        <Route path="/project-info" element={<ProjectInfo getImageUrl={getImageUrl} />} />
         <Route path="/" element={<MainSite getImageUrl={getImageUrl} imageMap={imageMap} units={units} />} />
       </Routes>
     </Router>
@@ -104,6 +107,7 @@ export default function App() {
 }
 
 function MainSite({ getImageUrl, imageMap, units }: { getImageUrl: (path: string) => string, imageMap: any, units: UnitListing[] }) {
+  const navigate = useNavigate();
   const [selectedUnit, setSelectedUnit] = useState<UnitListing | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
@@ -111,9 +115,9 @@ function MainSite({ getImageUrl, imageMap, units }: { getImageUrl: (path: string
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All Types');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleInquire = (unit: UnitListing) => {
     setSelectedUnit(unit);
@@ -184,18 +188,67 @@ function MainSite({ getImageUrl, imageMap, units }: { getImageUrl: (path: string
           </div>
 
           <div className="hidden md:flex items-center gap-8">
-            <button onClick={() => setShowModal(true)} className={`text-sm font-medium uppercase tracking-widest hover:text-gold-500 transition-colors ${scrolled ? 'text-neutral-700' : 'text-white'}`}>Project Info</button>
+            <button onClick={() => navigate('/project-info')} className={`text-sm font-medium uppercase tracking-widest hover:text-gold-500 transition-colors ${scrolled ? 'text-neutral-700' : 'text-white'}`}>Project Info</button>
             <button onClick={() => openModal('units')} className={`text-sm font-medium uppercase tracking-widest hover:text-gold-500 transition-colors ${scrolled ? 'text-neutral-700' : 'text-white'}`}>Available Units</button>
             <button onClick={() => openModal('contact')} className={`text-sm font-medium uppercase tracking-widest hover:text-gold-500 transition-colors ${scrolled ? 'text-neutral-700' : 'text-white'}`}>Contact Us</button>
           </div>
 
-          <button
-            onClick={() => openModal('contact')}
-            className="px-6 py-2 bg-gold-600 text-white rounded-full text-sm font-semibold hover:bg-gold-700 transition-all shadow-lg hover:shadow-gold-200"
-          >
-            Inquire
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => openModal('contact')}
+              className="hidden sm:block px-6 py-2 bg-gold-600 text-white rounded-full text-sm font-semibold hover:bg-gold-700 transition-all shadow-lg hover:shadow-gold-200"
+            >
+              Inquire
+            </button>
+            
+            {/* Mobile Menu Toggle */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className={`md:hidden p-2 rounded-lg transition-colors ${scrolled ? 'text-neutral-900 hover:bg-neutral-100' : 'text-white hover:bg-white/10'}`}
+            >
+              {isMobileMenuOpen ? <X size={28} /> : <Search size={28} />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden bg-white border-t border-neutral-100 overflow-hidden"
+            >
+              <div className="flex flex-col p-6 gap-4">
+                <button 
+                  onClick={() => { navigate('/project-info'); setIsMobileMenuOpen(false); }} 
+                  className="flex items-center gap-3 text-neutral-700 font-medium py-2"
+                >
+                  <Info size={20} className="text-gold-600" /> Project Info
+                </button>
+                <button 
+                  onClick={() => { openModal('units'); setIsMobileMenuOpen(false); }} 
+                  className="flex items-center gap-3 text-neutral-700 font-medium py-2"
+                >
+                  <Building size={20} className="text-gold-600" /> Available Units
+                </button>
+                <button 
+                  onClick={() => { openModal('contact'); setIsMobileMenuOpen(false); }} 
+                  className="flex items-center gap-3 text-neutral-700 font-medium py-2"
+                >
+                  <MessageSquare size={20} className="text-gold-600" /> Contact Us
+                </button>
+                <button 
+                  onClick={() => { openModal('contact'); setIsMobileMenuOpen(false); }} 
+                  className="w-full py-3 bg-gold-600 text-white rounded-xl font-bold mt-2"
+                >
+                  Inquire Now
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       {/* Hero Section */}
@@ -230,7 +283,7 @@ function MainSite({ getImageUrl, imageMap, units }: { getImageUrl: (path: string
                 View Listings <ChevronRight size={20} />
               </button>
               <button
-                onClick={() => openModal('project')}
+                onClick={() => navigate('/project-info')}
                 className="px-10 py-4 bg-white/10 backdrop-blur-md text-white border border-white/30 rounded-full font-bold text-lg hover:bg-white/20 transition-all flex items-center justify-center gap-2"
               >
                 Project Details <Info size={20} />
@@ -502,68 +555,7 @@ function MainSite({ getImageUrl, imageMap, units }: { getImageUrl: (path: string
           </div>
         </div>
       </Modal>
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
 
-          {/* Dark overlay */}
-          <div
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={() => setShowModal(false)}
-          />
-
-          {/* Content */}
-          <div className="relative z-10 max-w-5xl w-full mx-4">
-
-            {/* Close button */}
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute -top-14 right-0 bg-white/10 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/20 transition-all hover:scale-110 shadow-2xl border border-white/10 z-20"
-              title="Close"
-            >
-              <X size={24} />
-            </button>
-
-            {/* Scroll vertical like document */}
-            <div className="max-h-[85vh] overflow-y-auto space-y-6 pr-2">
-              {/* Show Info0002 to Info0065 */}
-              {Array.from({ length: 64 }, (_, i) => {
-                const num = (i + 2).toString().padStart(4, '0');
-                const path = `Info${num}.jpg`;
-                return (
-                  <div key={path} className="relative group cursor-zoom-in" onClick={() => {
-                    setZoomImage(getImageUrl(path));
-                    setZoomLevel(1);
-                  }}>
-                    <img
-                      src={getImageUrl(path)}
-                      onError={(e) => {
-                        // Hide broken images if they don't exist in storage
-                        (e.target as HTMLImageElement).parentElement!.style.display = 'none';
-                      }}
-                      className="w-full rounded-lg shadow-md transition-transform duration-300 group-hover:scale-[1.01]"
-                      alt={`Project Info ${num}`}
-                    />
-                    <div className="absolute top-4 right-4 p-2 bg-black/50 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ZoomIn size={20} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Caption */}
-            <div className="mt-6 text-center text-white">
-              <h3 className="text-2xl font-serif tracking-wide">
-                The Riviera Malibu
-              </h3>
-              <p className="text-neutral-300 text-sm mt-1">
-                Luxury beachfront living in Pattaya
-              </p>
-            </div>
-
-          </div>
-        </div>
-      )}
       {selectedUnit && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90"
