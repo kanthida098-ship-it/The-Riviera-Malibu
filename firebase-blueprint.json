@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "UnitListing": {
+      "title": "Unit Listing",
+      "description": "A real estate unit available for sale or rent.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the listing." },
+        "location": { "type": "string", "description": "The location of the unit." },
+        "size": { "type": "string", "description": "The size of the unit (e.g., '120 sqm')." },
+        "floor": { "type": "string", "description": "The floor number." },
+        "price": { "type": "string", "description": "The price of the unit." },
+        "view": { "type": "string", "description": "The view from the unit." },
+        "status": { "type": "string", "enum": ["available", "reserved", "sold"], "description": "The current status of the unit." },
+        "images": { "type": "array", "items": { "type": "string" }, "description": "List of image URLs." },
+        "bedrooms": { "type": "number", "description": "Number of bedrooms." },
+        "bathrooms": { "type": "number", "description": "Number of bathrooms." },
+        "highlight": { "type": "string", "description": "A key highlight of the unit." },
+        "type": { "type": "string", "enum": ["sale", "rent"], "description": "The type of listing." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the listing was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the listing was last updated." }
+      },
+      "required": ["title", "location", "price", "status", "type"]
+    },
+    "ImageMetadata": {
+      "title": "Image Metadata",
+      "description": "Metadata for uploaded images.",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string", "description": "The URL of the image." },
+        "name": { "type": "string", "description": "The original filename." },
+        "size": { "type": "number", "description": "The file size in bytes." },
+        "contentType": { "type": "string", "description": "The MIME type of the image." },
+        "uploadedAt": { "type": "string", "format": "date-time", "description": "When the image was uploaded." },
+        "uploadedBy": { "type": "string", "description": "The UID of the user who uploaded the image." }
+      },
+      "required": ["url", "name", "uploadedAt", "uploadedBy"]
+    }
+  },
+  "firestore": {
+    "/units/{unitId}": {
+      "schema": "UnitListing",
+      "description": "Collection of real estate unit listings."
+    },
+    "/images/{imageId}": {
+      "schema": "ImageMetadata",
+      "description": "Collection of image metadata."
+    }
+  }
+}
