@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import emailjs from 'emailjs-com';
+import { Modal } from './Modal';
 import { UnitListing } from '../types';
 import { 
   ChevronLeft, 
@@ -35,6 +37,41 @@ export const UnitDetails: React.FC<UnitDetailsProps> = ({ getImageUrl }) => {
   const [activeImage, setActiveImage] = useState(0);
   const [showZoom, setShowZoom] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const constraintsRef = useRef(null);
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    const unitDetails = unit ? `
+Unit Details:
+- Title: ${unit.title}
+- Price: ${unit.price}
+- Size: ${unit.size}
+- Floor: ${unit.floor}
+- Type: For ${unit.type}
+` : '';
+
+    emailjs.send(
+      'service_contact',
+      'template_krbblyu',
+      {
+        name: e.target.name.value,
+        email: e.target.email.value,
+        phone: e.target.phone.value,
+        message: `Inquiry for Unit: ${unit?.title}\n${unitDetails}\nCustomer Message:\n${e.target.message.value}`,
+      },
+      'mL6DNKjxsYq8zbpns'
+    )
+      .then(() => {
+        setShowSuccess(true);
+        setIsContactModalOpen(false);
+        e.target.reset();
+      })
+      .catch(() => {
+        alert('Failed to send message');
+      });
+  };
 
   useEffect(() => {
     const fetchUnit = async () => {
@@ -75,21 +112,7 @@ export const UnitDetails: React.FC<UnitDetailsProps> = ({ getImageUrl }) => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-20">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow-sm sticky top-0 z-40 py-4 px-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-2 text-neutral-600 hover:text-gold-600 transition-colors">
-            <ChevronLeft size={24} />
-            <span className="font-medium">Back to Listings</span>
-          </Link>
-          <div className="flex flex-col items-end">
-            <span className="font-serif text-lg font-bold text-neutral-900 leading-none">MALIBU</span>
-            <span className="text-[8px] uppercase tracking-widest text-gold-600">RESIDENCES</span>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-neutral-50 pb-20 pt-20">
       <div className="max-w-7xl mx-auto px-6 mt-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Left: Image Gallery */}
@@ -231,7 +254,7 @@ export const UnitDetails: React.FC<UnitDetailsProps> = ({ getImageUrl }) => {
                 </div>
               </div>
               <button 
-                onClick={() => navigate('/#contact')}
+                onClick={() => setIsContactModalOpen(true)}
                 className="w-full py-4 bg-gold-600 text-white rounded-xl font-bold hover:bg-gold-700 transition-all flex items-center justify-center gap-2"
               >
                 <MessageSquare size={20} /> Inquire About This Project
@@ -284,22 +307,34 @@ export const UnitDetails: React.FC<UnitDetailsProps> = ({ getImageUrl }) => {
               </button>
             </div>
 
-            <div className="relative overflow-hidden flex items-center justify-center w-full h-full pointer-events-none">
+            <div ref={constraintsRef} className="relative overflow-hidden flex items-center justify-center w-full h-full pointer-events-none">
               <motion.img 
+                key={`${activeImage}-${zoomLevel}`}
                 src={getImageUrl(unit.images[activeImage])} 
-                style={{ scale: zoomLevel }}
-                className="max-h-full max-w-full object-contain transition-transform duration-200 pointer-events-auto"
+                initial={{ x: 0, y: 0 }}
+                animate={{ scale: zoomLevel }}
+                drag={zoomLevel > 1}
+                dragConstraints={{
+                  left: -800 * zoomLevel,
+                  right: 800 * zoomLevel,
+                  top: -800 * zoomLevel,
+                  bottom: 800 * zoomLevel
+                }}
+                dragElastic={0.1}
+                dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+                className={`max-h-full max-w-full object-contain pointer-events-auto ${zoomLevel > 1 ? 'cursor-grab active:cursor-grabbing' : ''}`}
                 alt="Zoomed"
                 referrerPolicy="no-referrer"
               />
 
               {/* Zoom Modal Navigation Arrows */}
-              {unit.images.length > 1 && zoomLevel === 1 && (
+              {unit.images.length > 1 && (
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-8 pointer-events-none">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveImage((prev) => (prev === 0 ? unit.images.length - 1 : prev - 1));
+                      setZoomLevel(1);
                     }}
                     className="p-4 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all hover:scale-110 shadow-2xl border border-white/10 pointer-events-auto"
                   >
@@ -309,6 +344,7 @@ export const UnitDetails: React.FC<UnitDetailsProps> = ({ getImageUrl }) => {
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveImage((prev) => (prev === unit.images.length - 1 ? 0 : prev + 1));
+                      setZoomLevel(1);
                     }}
                     className="p-4 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all hover:scale-110 shadow-2xl border border-white/10 pointer-events-auto"
                   >
@@ -325,6 +361,7 @@ export const UnitDetails: React.FC<UnitDetailsProps> = ({ getImageUrl }) => {
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveImage(index);
+                    setZoomLevel(1);
                   }}
                   className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${activeImage === index ? 'border-gold-500' : 'border-transparent opacity-50'}`}
                 >
@@ -335,6 +372,106 @@ export const UnitDetails: React.FC<UnitDetailsProps> = ({ getImageUrl }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Contact Modal */}
+      <Modal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        title="Inquire About This Project"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-2xl font-serif text-neutral-900 mb-2">{unit.title}</h3>
+              <p className="text-gold-700 font-bold text-xl mb-4">{unit.price}</p>
+              
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gold-50 rounded-2xl border border-gold-100">
+                <div className="flex items-center gap-2 text-neutral-600">
+                  <Maximize size={16} className="text-gold-600" />
+                  <span className="text-sm font-medium">{unit.size}</span>
+                </div>
+                <div className="flex items-center gap-2 text-neutral-600">
+                  <Building2 size={16} className="text-gold-600" />
+                  <span className="text-sm font-medium">Floor {unit.floor}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl overflow-hidden shadow-lg border border-neutral-100 mt-6">
+              <img 
+                src={getImageUrl(unit.images[0])} 
+                alt={unit.title} 
+                className="w-full h-48 object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <p className="text-neutral-600 text-sm leading-relaxed">
+              Our team is ready to provide you with all the details, 
+              pricing, and a private viewing schedule for this residence.
+            </p>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">Full Name</label>
+              <input
+                name="name"
+                type="text"
+                required
+                placeholder="Enter your full name"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-300 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition duration-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">Email Address</label>
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="Enter your email"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-300 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition duration-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">Phone Number</label>
+              <input
+                name="phone"
+                type="tel"
+                required
+                placeholder="Enter your phone number"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-300 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition duration-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">Message</label>
+              <textarea
+                name="message"
+                rows={4}
+                placeholder="Write your message..."
+                className="w-full px-4 py-3 rounded-lg border border-neutral-300 bg-white text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition duration-200"
+              />
+            </div>
+            <button type="submit" className="w-full py-4 bg-gold-500 hover:bg-gold-600 text-white font-semibold rounded-lg transition duration-200">
+              Send Inquiry
+            </button>
+          </form>
+        </div>
+      </Modal>
+
+      {/* Success Modal */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+            <h2 className="text-2xl font-serif text-gold-700 mb-3">Inquiry Sent</h2>
+            <p className="text-neutral-600 mb-6">Our agent will contact you shortly regarding {unit.title}.</p>
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="px-6 py-3 bg-gold-600 text-white rounded-lg hover:bg-gold-700 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ZoomIn, ZoomOut, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -10,27 +10,14 @@ interface ProjectInfoProps {
 export const ProjectInfo: React.FC<ProjectInfoProps> = ({ getImageUrl }) => {
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const constraintsRef = useRef(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-950 pb-20">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow-sm sticky top-0 z-40 py-4 px-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-2 text-neutral-600 hover:text-gold-600 transition-colors">
-            <ChevronLeft size={24} />
-            <span className="font-medium">Back to Home</span>
-          </Link>
-          <div className="flex flex-col items-end">
-            <span className="font-serif text-lg font-bold text-neutral-900 leading-none">MALIBU</span>
-            <span className="text-[8px] uppercase tracking-widest text-gold-600">RESIDENCES</span>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-neutral-950 pb-20 pt-20">
       <div className="w-full">
         {/* Featured Blogs (1-3) with Background */}
         <div 
@@ -185,12 +172,23 @@ export const ProjectInfo: React.FC<ProjectInfoProps> = ({ getImageUrl }) => {
             </div>
 
             {/* Image container */}
-            <div className="relative z-10 flex items-center justify-center w-full h-full overflow-auto p-4" onClick={() => setZoomImage(null)}>
-              <img
-                src={zoomImage}
+            <div ref={constraintsRef} className="relative z-10 flex items-center justify-center w-full h-full overflow-hidden p-4" onClick={() => setZoomImage(null)}>
+              <motion.img
+                key={`${zoomImage}-${zoomLevel}`}
+                src={zoomImage || ''}
                 alt="Zoom"
-                style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center' }}
-                className="max-h-full max-w-full object-contain transition-transform duration-300 pointer-events-auto"
+                initial={{ x: 0, y: 0 }}
+                animate={{ scale: zoomLevel }}
+                drag={zoomLevel > 1}
+                dragConstraints={{
+                  left: -800 * zoomLevel,
+                  right: 800 * zoomLevel,
+                  top: -800 * zoomLevel,
+                  bottom: 800 * zoomLevel
+                }}
+                dragElastic={0.1}
+                dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+                className={`max-h-full max-w-full object-contain pointer-events-auto ${zoomLevel > 1 ? 'cursor-grab active:cursor-grabbing' : ''}`}
                 onClick={(e) => e.stopPropagation()}
                 referrerPolicy="no-referrer"
               />

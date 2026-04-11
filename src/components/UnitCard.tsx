@@ -5,7 +5,7 @@ import { Bed, Maximize, Building2, Tag } from 'lucide-react';
 
 interface UnitCardProps {
   unit: UnitListing;
-  onInquire: (unit: UnitListing) => void;
+  onInquire?: (unit: UnitListing) => void;
   getImageUrl: (path: string) => string;
 }
 
